@@ -11,7 +11,7 @@ export function LayerPanel() {
   const layers = useEditor((s) => s.layers);
   const selectedId = useEditor((s) => s.selectedId);
   const mode = useEditor((s) => s.mode);
-  const skinTone = useEditor((s) => s.body.skinTone);
+  const body = useEditor((s) => s.body);
   const canUndo = useEditor((s) => s.past.length > 0);
   const canRedo = useEditor((s) => s.future.length > 0);
   const armed = useImages((s) => s.armed);
@@ -47,19 +47,37 @@ export function LayerPanel() {
         </button>
       </section>
 
-      <section className="flex flex-col gap-1">
-        <label>
-          Skin tone
-          <input
-            type="range"
+      <section className="flex flex-col gap-2">
+        <h2 className="font-medium">Body</h2>
+        <div className="flex gap-2">
+          {(["female", "male"] as const).map((sex) => (
+            <button
+              key={sex}
+              className={`${btn} ${body.sex === sex ? "bg-white/20" : ""}`}
+              onClick={() => store.setBody({ sex })}
+            >
+              {sex === "female" ? "Female" : "Male"}
+            </button>
+          ))}
+        </div>
+        {(
+          [
+            ["height", "Height"],
+            ["weight", "Weight"],
+            ["muscle", "Muscle"],
+            ["skinTone", "Skin tone"],
+          ] as const
+        ).map(([key, label]) => (
+          <Slider
+            key={key}
+            label={label}
             min={0}
             max={1}
-            step={0.01}
-            value={skinTone}
-            onChange={(e) => store.setBody({ skinTone: Number(e.target.value) })}
-            className="w-full"
+            value={body[key]}
+            onChange={(v) => store.setBody({ [key]: v })}
+            record={false}
           />
-        </label>
+        ))}
       </section>
 
       <section className="flex flex-col gap-2">
@@ -185,6 +203,7 @@ function Slider(props: {
   max: number;
   value: number;
   onChange(v: number): void;
+  record?: boolean;
 }) {
   return (
     <label>
@@ -195,7 +214,9 @@ function Slider(props: {
         max={props.max}
         step={0.01}
         value={props.value}
-        onPointerDown={() => editorStore.getState().checkpoint()}
+        onPointerDown={() => {
+          if (props.record !== false) editorStore.getState().checkpoint();
+        }}
         onChange={(e) => props.onChange(Number(e.target.value))}
         className="w-full"
       />

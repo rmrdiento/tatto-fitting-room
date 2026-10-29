@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# MakeHuman source data (CC0), downloaded by hand; only body.glb is committed
+/tools/mh-source/

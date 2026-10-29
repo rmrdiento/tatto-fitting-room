@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { BodyMesh } from "./BodyMesh";
@@ -19,12 +19,19 @@ export function Editor() {
   return (
     <div className="flex h-screen w-full">
       <div className="relative flex-1">
-        <Canvas camera={{ position: [0, 0.2, 3.2], fov: 40 }}>
+        <Canvas camera={{ position: [0, 1, 3.6], fov: 40 }}>
           <color attach="background" args={["#1c1c1f"]} />
           <ambientLight intensity={0.9} />
           <directionalLight position={[2, 3, 4]} intensity={1.6} />
-          <BodyMesh onDragChange={setDragging} />
-          <OrbitControls makeDefault enabled={!dragging} enablePan={false} />
+          <Suspense fallback={null}>
+            <BodyMesh onDragChange={setDragging} />
+          </Suspense>
+          <OrbitControls
+            makeDefault
+            enabled={!dragging}
+            enablePan={false}
+            target={[0, 0.9, 0]}
+          />
         </Canvas>
       </div>
       <LayerPanel />

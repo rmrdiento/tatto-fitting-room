@@ -3,22 +3,49 @@
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { ThreeEvent } from "@react-three/fiber";
-import { skinColor } from "@/body/params";
+import { useGLTF } from "@react-three/drei";
+import { morphInfluences, skinColor } from "@/body/params";
 import { compose } from "@/tattoo/compose";
 import { editorStore, useEditor } from "@/state/store";
 import { useImages } from "@/state/images";
 
 const TEXTURE_SIZE = 1024;
-const RADIUS = 0.35;
-const LENGTH = 1.2;
-// World circumference over world height of the capsule: keeps tattoos
-// undistorted on this placeholder body.
-const UV_ASPECT = (2 * Math.PI * RADIUS) / (LENGTH + 2 * RADIUS);
+const MODEL_URL = "/models/body.glb";
 
 // three.js textures are mutable GPU-backed objects; the React Compiler lint
 // rule flags in-hook mutation, so the flag is set from a plain function.
 function markDirty(texture: THREE.Texture) {
   texture.needsUpdate = true;
+}
+
+function applyInfluences(mesh: THREE.Mesh, values: number[]) {
+  values.forEach((v, i) => {
+    if (mesh.morphTargetInfluences) mesh.morphTargetInfluences[i] = v;
+  });
+}
+
+function setMaterial(mesh: THREE.Mesh, material: THREE.Material) {
+  mesh.material = material;
+}
+
+function useBodyMesh(map: THREE.Texture) {
+  const { nodes } = useGLTF(MODEL_URL);
+  const mesh = nodes.body as THREE.Mesh;
+  const material = useMemo(
+    () => new THREE.MeshStandardMaterial({ map, roughness: 0.7 }),
+    [map],
+  );
+  useEffect(() => {
+    setMaterial(mesh, material);
+  }, [mesh, material]);
+  const targetNames = useMemo(
+    () =>
+      Object.entries(mesh.morphTargetDictionary ?? {})
+        .sort((a, b) => a[1] - b[1])
+        .map(([name]) => name),
+    [mesh],
+  );
+  return { mesh, targetNames };
 }
 
 interface Props {
@@ -28,7 +55,8 @@ interface Props {
 export function BodyMesh({ onDragChange }: Props) {
   const layers = useEditor((s) => s.layers);
   const mode = useEditor((s) => s.mode);
-  const skinTone = useEditor((s) => s.body.skinTone);
+  const body = useEditor((s) => s.body);
+  const skinTone = body.skinTone;
   const images = useImages((s) => s.images);
   const dragId = useRef<string | null>(null);
 
@@ -44,6 +72,12 @@ export function BodyMesh({ onDragChange }: Props) {
     return t;
   }, [canvas]);
 
+  const { mesh, targetNames } = useBodyMesh(texture);
+
+  useEffect(() => {
+    applyInfluences(mesh, morphInfluences(body, targetNames));
+  }, [mesh, targetNames, body]);
+
   useEffect(() => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -51,7 +85,6 @@ export function BodyMesh({ onDragChange }: Props) {
       size: TEXTURE_SIZE,
       skinColor: skinColor(skinTone),
       mode,
-      uvAspect: UV_ASPECT,
     });
     markDirty(texture);
   }, [canvas, texture, layers, images, mode, skinTone]);
@@ -104,14 +137,12 @@ export function BodyMesh({ onDragChange }: Props) {
   };
 
   return (
-    <mesh
+    <primitive
+      object={mesh}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
-    >
-      <capsuleGeometry args={[RADIUS, LENGTH, 16, 64]} />
-      <meshStandardMaterial map={texture} roughness={0.7} />
-    </mesh>
+    />
   );
 }
