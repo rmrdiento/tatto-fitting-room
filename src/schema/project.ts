@@ -14,7 +14,13 @@ export const LayerSchema = z.object({
   imageId: z.string().min(1),
   u: z.number().min(0).max(1),
   v: z.number().min(0).max(1),
-  scale: z.number().positive(),
+  /** Real-world width of the tattoo in centimetres. */
+  widthCm: z.number().positive(),
+  /** UV displacement per metre at the tattoo's position; see tattoo/uvFrame. */
+  frame: z.object({
+    right: z.tuple([z.number(), z.number()]),
+    up: z.tuple([z.number(), z.number()]),
+  }),
   rotation: z.number(),
   opacity: z.number().min(0).max(1),
   mirrored: z.boolean(),

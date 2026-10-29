@@ -149,11 +149,12 @@ export function LayerPanel() {
         <section className="flex flex-col gap-2">
           <h2 className="font-medium">Selected</h2>
           <Slider
-            label="Size"
-            min={0.05}
-            max={0.6}
-            value={selected.scale}
-            onChange={(scale) => store.updateLayer(selected.id, { scale })}
+            label={`Width: ${selected.widthCm.toFixed(1)} cm`}
+            min={2}
+            max={40}
+            step={0.5}
+            value={selected.widthCm}
+            onChange={(widthCm) => store.updateLayer(selected.id, { widthCm })}
           />
           <Slider
             label="Rotation"
@@ -202,6 +203,7 @@ function Slider(props: {
   min: number;
   max: number;
   value: number;
+  step?: number;
   onChange(v: number): void;
   record?: boolean;
 }) {
@@ -212,7 +214,7 @@ function Slider(props: {
         type="range"
         min={props.min}
         max={props.max}
-        step={0.01}
+        step={props.step ?? 0.01}
         value={props.value}
         onPointerDown={() => {
           if (props.record !== false) editorStore.getState().checkpoint();

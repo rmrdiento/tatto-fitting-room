@@ -6,6 +6,7 @@ import type { ThreeEvent } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import { morphInfluences, skinColor } from "@/body/params";
 import { compose } from "@/tattoo/compose";
+import { FALLBACK_FRAME, frameAtFace } from "@/tattoo/placement";
 import { editorStore, useEditor } from "@/state/store";
 import { useImages } from "@/state/images";
 
@@ -109,7 +110,8 @@ export function BodyMesh({ onDragChange }: Props) {
         imageId: armed,
         u: e.uv.x,
         v: e.uv.y,
-        scale: 0.2,
+        widthCm: 8,
+        frame: e.face ? frameAtFace(mesh, e.face) : FALLBACK_FRAME,
         rotation: 0,
         opacity: 1,
         mirrored: false,
@@ -131,9 +133,11 @@ export function BodyMesh({ onDragChange }: Props) {
 
   const onPointerMove = (e: ThreeEvent<PointerEvent>) => {
     if (!dragId.current || !e.uv) return;
-    editorStore
-      .getState()
-      .updateLayer(dragId.current, { u: e.uv.x, v: e.uv.y });
+    editorStore.getState().updateLayer(dragId.current, {
+      u: e.uv.x,
+      v: e.uv.y,
+      ...(e.face && { frame: frameAtFace(mesh, e.face) }),
+    });
   };
 
   return (

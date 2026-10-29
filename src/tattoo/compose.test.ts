@@ -13,6 +13,7 @@ function recorder() {
     restore: () => calls.push("restore"),
     translate: (x, y) => calls.push(`translate ${x},${y}`),
     rotate: (a) => calls.push(`rotate ${a}`),
+    transform: (a, b, c, d, e, f) => calls.push(`transform ${a},${b},${c},${d},${e},${f}`),
     scale: (x, y) => calls.push(`scale ${x},${y}`),
     drawImage: (_i, dx, dy, dw, dh) => {
       alphas.push(ctx.globalAlpha);
@@ -33,7 +34,8 @@ const layer = (over: Partial<Layer> = {}): Layer => ({
   imageId: "img",
   u: 0.5,
   v: 0.75,
-  scale: 0.2,
+  widthCm: 20,
+  frame: { right: [1, 0], up: [0, 1] },
   rotation: 0,
   opacity: 0.8,
   mirrored: false,
@@ -52,9 +54,10 @@ describe("compose", () => {
       "fillRect 0,0,1000,1000",
       "save",
       "translate 500,250",
+      "transform 1000,0,0,1000,0,0",
       "rotate 0",
       "scale 1,1",
-      "drawImage -100,-50,200,100",
+      "drawImage -0.1,-0.05,0.2,0.1",
       "restore",
     ]);
     expect(alphas).toEqual([0.8]);
@@ -88,9 +91,21 @@ describe("compose", () => {
     expect(calls.filter((c) => c.startsWith("drawImage"))).toHaveLength(1);
   });
 
-  it("applies UV aspect compensation to height only", () => {
+  it("maps surface metres to UV through the layer frame", () => {
     const { ctx, calls } = recorder();
-    compose(ctx, [layer()], { img: image }, { ...opts, uvAspect: 2 });
-    expect(calls).toContain("drawImage -100,-100,200,200");
+    // Chart rotated 90 degrees and 10x denser: world right -> +V, up -> -U.
+    compose(
+      ctx,
+      [layer({ frame: { right: [0, 0.1], up: [-0.1, 0] } })],
+      { img: image },
+      opts,
+    );
+    expect(calls).toContain("transform 0,-100,100,0,0,0");
+  });
+
+  it("keeps real-world size regardless of texture position", () => {
+    const { ctx, calls } = recorder();
+    compose(ctx, [layer({ widthCm: 10 })], { img: image }, opts);
+    expect(calls).toContain("drawImage -0.05,-0.025,0.1,0.05");
   });
 });
