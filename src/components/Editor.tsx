@@ -10,6 +10,7 @@ import { useImages } from "@/state/images";
 
 export function Editor() {
   const [dragging, setDragging] = useState(false);
+  const [ready, setReady] = useState(false);
   const load = useImages((s) => s.load);
 
   useEffect(() => {
@@ -18,13 +19,16 @@ export function Editor() {
 
   return (
     <div className="flex h-screen w-full">
-      <div className="relative flex-1">
+      <div className="relative flex-1" data-ready={ready}>
         <Canvas camera={{ position: [0, 1, 3.6], fov: 40 }}>
           <color attach="background" args={["#1c1c1f"]} />
           <ambientLight intensity={0.9} />
           <directionalLight position={[2, 3, 4]} intensity={1.6} />
           <Suspense fallback={null}>
-            <BodyMesh onDragChange={setDragging} />
+            <BodyMesh
+              onDragChange={setDragging}
+              onReady={() => setReady(true)}
+            />
           </Suspense>
           <OrbitControls
             makeDefault

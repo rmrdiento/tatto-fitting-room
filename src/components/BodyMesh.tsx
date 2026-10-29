@@ -51,9 +51,11 @@ function useBodyMesh(map: THREE.Texture) {
 
 interface Props {
   onDragChange(dragging: boolean): void;
+  /** Called once the model is mounted and can be clicked. */
+  onReady?(): void;
 }
 
-export function BodyMesh({ onDragChange }: Props) {
+export function BodyMesh({ onDragChange, onReady }: Props) {
   const layers = useEditor((s) => s.layers);
   const mode = useEditor((s) => s.mode);
   const body = useEditor((s) => s.body);
@@ -76,11 +78,17 @@ export function BodyMesh({ onDragChange }: Props) {
   const { mesh, targetNames } = useBodyMesh(texture);
 
   useEffect(() => {
+    onReady?.();
+  }, [onReady]);
+
+  useEffect(() => {
     applyInfluences(mesh, morphInfluences(body, targetNames));
   }, [mesh, targetNames, body]);
 
   useEffect(() => {
-    const ctx = canvas.getContext("2d");
+    // Software canvas: a GPU-accelerated 2D canvas can hand WebGL a stale
+    // frame when it is redrawn soon after the previous upload.
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
     if (!ctx) return;
     compose(ctx, layers, images, {
       size: TEXTURE_SIZE,
